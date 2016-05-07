@@ -44,8 +44,8 @@ private:
     int             loopPlaying;
     ofSoundStream   *inputSoundStream, *outputSoundStream;
     Loop*           currentLoop;
-    float*          leftInput;
-    float*          rightInput;
+    float           *leftInput, *rightInput;
+    float           *leftOutput, *rightOutput;
     
     
 public:

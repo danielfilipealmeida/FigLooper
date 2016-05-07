@@ -2,15 +2,7 @@
 #include "GraphicUtils.hpp"
 #include <map>
 
-/*
-std::vector<string> stateStrings = {
-    "Idle",
-    "Waiting for first loop",
-    "Recording first loop",
-    "Recording more loops",
-    "Playing Loop"
-};
- */
+
 std::map<int, string> stateStrings = {
     {   -1,     "Idle"},
     {   0,      "Waiting for first loop"},
@@ -34,9 +26,15 @@ void ofApp::setup(){
     samplesPerSecond    = 44100;
     loopSize            = 0;
     currentLoop         = NULL;
-    leftInput           = new float[256];
-    rightInput          = new float[256];
+    leftInput           = new float[bufferSize];
+    rightInput          = new float[bufferSize];
+    leftOutput          = new float[bufferSize];
+    rightOutput         = new float[bufferSize];
     
+    memset(leftInput, 0, bufferSize);
+    memset(rightInput, 0, bufferSize);
+    memset(leftOutput, 0, bufferSize);
+    memset(rightOutput, 0, bufferSize);
     
     
     // init input
@@ -69,6 +67,14 @@ void ofApp::draw(){
                                     bufferSize,
                                     GraphicUtils::makeRect(0,0,200,200)
                                     );
+
+    
+    GraphicUtils::drawAudioChannels(leftOutput,
+                                    rightOutput,
+                                    bufferSize,
+                                    GraphicUtils::makeRect(0,200,200,200)
+                                    );
+
     
     gui.draw();
     ofDrawBitmapString(stateStrings[(unsigned int)state],0,600);
@@ -170,7 +176,15 @@ void ofApp::changeState() {
     }
 }
 
-
+void ofApp::changeStateToPlayLoops() {
+    if (state == RecordingFirstLoop || state == RecordingMoreLoops) {
+        currentLoop->stopSaving();
+        currentLoop->play();
+        currentLoop = NULL;
+    }
+    
+    state = PlayingLoops;
+}
 
 void ofApp::changeState(AppState fromState, AppState toState) {
     cout << fromState << "-" << toState << endl;
@@ -185,6 +199,7 @@ void ofApp::changeState(AppState fromState, AppState toState) {
             case RecordingMoreLoops:
                 // save the previous loop
                 currentLoop->stopSaving();
+                currentLoop->play();
                 
                 startSavingNewLoop();
                 break;
@@ -215,15 +230,7 @@ void ofApp::changeState(AppState fromState, AppState toState) {
 
 
 
-void ofApp::changeStateToPlayLoops() {
-    if (state == RecordingFirstLoop || state == RecordingMoreLoops) {
-        currentLoop->stopSaving();
-        currentLoop = NULL;
-    }
-    
-    state = PlayingLoops;
-    
-}
+
 
 void ofApp::audioIn(float * input, int bufferSize, int nChannels) {
     Audio::splitStreamIntoChannels(input, bufferSize, leftInput, rightInput);
@@ -254,5 +261,7 @@ void ofApp::audioOut(float * input, int bufferSize, int nChannels) {
         
         if (loop != currentLoop) loop->playCurrentChunk(input, bufferSize, nChannels);
     }
+    Audio::splitStreamIntoChannels(input, bufferSize, leftOutput, rightOutput);
+    
 }
 

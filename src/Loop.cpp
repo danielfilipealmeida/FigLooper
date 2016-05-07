@@ -32,6 +32,7 @@ void Loop::setChannelData(float *data, int bufferSize) {
         right[i]    = data[i*2+1];
     }
      */
+    
     Audio::splitStreamIntoChannels(data, bufferSize, left, right);
 }
 
@@ -60,6 +61,7 @@ void Loop::startSaving() {
 void Loop::stopSaving() {
     sf_close(outfile);
     outfile = NULL;
+    state = Stopped;
 }
 
 void Loop::saveData(float * input, int bufferSize, int nChannels) {
@@ -76,11 +78,14 @@ void Loop::saveData(float * input, int bufferSize, int nChannels) {
 #pragma mark Load and Play
 
 void Loop::load() {
-    inputfile = sf_open (path.c_str(), SFM_WRITE, &info) ;
+    inputfile   = sf_open (path.c_str(), SFM_READ, &info) ;
+    state       = OpenForRead;
 }
 
 void Loop::play() {
-    state = OpenForRead;
+    if (state != OpenForRead) load();
+    
+    playBufferCounter   = 0;
 }
 
 void Loop::playCurrentChunk(float * input, int bufferSize, int nChannels) {
@@ -89,10 +94,10 @@ void Loop::playCurrentChunk(float * input, int bufferSize, int nChannels) {
     
     float *fileChunk;
     
-    sf_seek(inputfile, bufferSize * playBufferCounter, SEEK_SET);
-    sf_readf_float(inputfile, fileChunk, bufferSize);
-    setChannelData(input, bufferSize);
-    for (int i = 0; i < bufferSize; i++){
+    sf_seek(inputfile, bufferSize * playBufferCounter * nChannels, SEEK_SET);
+    sf_readf_float(inputfile, fileChunk, bufferSize * nChannels);
+    setChannelData(input, bufferSize * nChannels);
+    for (int i = 0; i < bufferSize * nChannels; i++){
         input[i] = input[i] + fileChunk[i];
     }
     playBufferCounter++;
